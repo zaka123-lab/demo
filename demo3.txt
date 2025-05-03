@@ -1,88 +1,6 @@
-Шаги для устранения ошибок и успешного присоединения HQ-CLI к домену BR-SRV
-1. Исправление ошибки при импорте ldapadds.ldif
-Ошибка:
-ldap_add: Already exists (68)
-Причина:
-Запись dc=au-team,dc=irpo уже существует в LDAP.
-Решение:
-Удалите существующую структуру LDAP и повторите импорт.
-sudo ldapdelete -Y EXTERNAL -H ldapi:/// -D cn=admin,dc=au-team,dc=irpo -w P@$$word "dc=au-team,dc=irpo"
-sudo ldapadd -Y EXTERNAL -H ldapi:/// -f /etc/ldap/ldapadds.ldif
-
-2. Исправление ошибки при модификации LDAP через ldapmodify
-Ошибка:
-ldap_modify: Constraint violation (19)
-additional info: <olcRootPW> extra cruft after <password>
-Причина:
-Неправильный формат пароля в команде ldapmodify.
-
-Решение:
-Используйте утилиту slappasswd для корректного хеширования пароля.
-sudo ldapmodify -Y EXTERNAL -H ldapi:/// << 'EOF'
-dn: olcDatabase={1}mdb,cn=config
-changetype: modify
-replace: olcRootPW
-olcRootPW: $(slappasswd -s P@$$word)
-EOF
-
-3. Исправление ошибки при запуске smbd.service
-Ошибка:
-pdb backend ldapsam:ldap://localhost did not corre
-Причина:
-Неправильная конфигурация Samba или отсутствие связывания с LDAP.
-
-Решение:
-Убедитесь, что в файле smb.conf указаны корректные параметры для LDAP.
-[global]
-passdb backend = ldapsam:ldap://localhost
-ldap admin dn = cn=admin,dc=au-team,dc=irpo
-ldap suffix = dc=au-team,dc=irpo
-ldap user suffix = ou=People
-ldap group suffix = ou=Groups
-ldap machine suffix = ou=Computers
-ldap ssl = off
-
-Перезагрузите службы:
-sudo systemctl restart smbd nmbd
-
-4. Исправление ошибки при выполнении smbclient -L localhost -U%
-Ошибка:
-bash: smbclient: command not found
-Причина:
-Отсутствие установленного пакета smbclient.
-
-Решение:
-Установите smbclient на BR-SRV.
-sudo apt install samba-client -y
-
-5. Исправление ошибки при присоединении HQ-CLI к домену
-Ошибка:
-Host is not configured as a member server.
-Invalid configuration. Exiting....
-Failed to join domain: This operation is only allowed for the PDC of the domain.
-
-Причина:
-BR-SRV не настроен как Primary Domain Controller (PDC).
-
-Решение:
-Настройте BR-SRV как PDC, добавив следующие параметры в smb.conf:
-
-[global]
-domain master = yes
-local master = yes
-preferred master = yes
-os level = 32
-Сохраните изменения и перезагрузите службы:
-
-sudo systemctl restart smbd nmbd
-
-Теперь попробуйте присоединить HQ-CLI к домену:
-
-sudo net ads join -U Administrator%P@$$word
-
-Полные шаги для настройки BR-SRV и присоединения HQ-CLI
+Полный конфиг для настройки BR-SRV и присоединения HQ-CLI
 На BR-SRV:
-Установите LDAP-сервер и утилиты:
+Установите необходимые пакеты:
 sudo apt update -y && sudo apt install slapd ldap-utils samba-client -y
 
 Создайте файл ldapadds.ldif:
@@ -161,7 +79,9 @@ EOF
 
 Создайте общий каталог и настройте права:
 sudo mkdir -p /srv/shared
+
 sudo chmod 2770 /srv/shared
+
 sudo chgrp hq /srv/shared
 
 Связывание Samba с LDAP:
@@ -172,9 +92,8 @@ sudo smbpasswd -W
 sudo systemctl restart smbd nmbd
 
 Проверьте доступность общего ресурса:
-```bash
 smbclient -L localhost -U%
-```
+
 На HQ-CLI:
 Установите Samba-клиент:
 sudo apt install samba-client -y
@@ -185,12 +104,69 @@ sudo net ads join -U Administrator%P@$$word
 Проверьте присоединение:
 sudo net ads testjoin
 
-Результат:
+Ожидаемый результат:
 Joined 'HQ-CLI' to realm 'au-team.irpo'
 
 Проверка:
-
 sudo net ads testjoin
 
 Результат: Join is OK
 Теперь HQ-CLI успешно присоединен к домену BR-SRV.
+
+Полный конфигурационный файл smb.conf для BR-SRV:
+[global]
+workgroup = AU-TEAM
+server string = BR-SRV Samba Server
+netbios name = br-srv
+security = user
+map to guest = Bad User
+dns proxy = no
+idmap config * : backend = tdb
+passdb backend = ldapsam:ldap://localhost
+ldap admin dn = cn=admin,dc=au-team,dc=irpo
+ldap suffix = dc=au-team,dc=irpo
+ldap user suffix = ou=People
+ldap group suffix = ou=Groups
+ldap machine suffix = ou=Computers
+ldap ssl = off
+domain master = yes
+local master = yes
+preferred master = yes
+os level = 32
+[Shared]
+path = /srv/shared
+force group = hq
+writable = yes
+
+Полный файл ldapadds.ldif:
+dn: dc=au-team,dc=irpo
+objectClass: top
+objectClass: dcObject
+objectClass: organization
+o: AU-TEAM
+dc: au-team
+dn: cn=admin,dc=au-team,dc=irpo
+objectClass: simpleSecurityObject
+objectClass: organizationalRole
+cn: admin
+description: LDAP Administrator
+userPassword: $(slappasswd -s P@$$word | sed 's/$/\$/g')
+dn: ou=People,dc=au-team,dc=irpo
+objectClass: organizationalUnit
+ou: People
+dn: ou=Groups,dc=au-team,dc=irpo
+objectClass: organizationalUnit
+ou: Groups
+dn: ou=Computers,dc=au-team,dc=irpo
+objectClass: organizationalUnit
+ou: Computers
+
+Команды для проверки:
+Проверка LDAP:
+sudo slapcat
+
+Проверка Samba:
+sudo smbclient -L localhost -U%
+
+Проверка присоединения HQ-CLI:
+sudo net ads testjoin
