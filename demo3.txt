@@ -18,7 +18,7 @@ for i in {1..5}; do
     fi
 done
 echo -e "\nСписок созданных пользователей:"
-getent passwd | grep 'hq$'
+getent passwd | grep -E "user[1-5]\.hq"
 
-chmod +x create_users.sh
-sudo ./create_users.sh
+chmod +x users.sh
+sudo ./users.sh
