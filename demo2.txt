@@ -78,6 +78,15 @@ chmod +x remove_users.sh
 Шаг 1.4. apt install slapd ldap-utils -y
 Проль для Administrator P@$$word
 
+nano /etc/ldap/slapd.conf
+database bdb
+suffix "dc=au-team,dc=irpo"
+rootdn "cn=admin,dc=au-team,dc=irpo"
+rootpw {SSHA}your_secret_password_here
+directory /var/lib/ldap
+
+sudo ldapadd -x -D cn=admin,dc=au-team,dc=irpo -w your_secret_password_here -f /etc/ldap/ldapadds.ldif
+
 Шаг 1.4: Настройка Samba для домена
 mv /etc/samba/smb.conf /etc/samba/smb.conf.bak
 tee /etc/samba/smb.conf << 'EOF'
@@ -95,12 +104,6 @@ ldap suffix = dc=au-team,dc=irpo
 ldap user suffix = ou=People
 ldap group suffix = ou=Groups
 ldap machine suffix = ou=Computers
-[Shared]
-path = /srv/shared
-force group = hq
-writable = yes
-force directory mode = 2770
-force file mode = 2660
 
 systemctl restart smbd nmbd
 sudo ldapadd -x -D cn=admin,dc=au-team,dc=irpo -w P@$$word -f /etc/ldap/ldapadds.ldif
