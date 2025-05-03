@@ -110,12 +110,12 @@ chgrp hq /srv/shared
 Шаг 1.6: Перезапуск Samba
 systemctl restart smbd nmbd
 
-9. Проверка работоспособности
+Шаг 1.7. Проверка работоспособности, можно на BR-SRV и также на HQ-CLI
 smbclient //br-srv/Shared -U sshuser
 
-10. Присоединение клиента к домену
+Шаг 1.8. Присоединение клиента к домену
 На HQ-CLI выполните:
-net ads join -U sshuser%P@$$word
+net ads join -U sshuser%P@ssw0rd
 
 Шаг 1.7: Настройка sudo для группы hq
 echo "%hq ALL=(ALL) NOPASSWD: /bin/grep, /bin/cat, /usr/bin/id" >> /etc/sudoers
