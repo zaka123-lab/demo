@@ -111,7 +111,7 @@ chgrp hq /srv/shared
 systemctl restart smbd nmbd
 
 Шаг 1.7. Проверка работоспособности, можно на BR-SRV и также на HQ-CLI
-smbclient //br-srv/Shared -U sshuser
+smbclient //br-srv.au-team.irpo/Shared -U sshuser
 
 Шаг 1.8. Присоединение клиента к домену
 На HQ-CLI выполните:
