@@ -75,116 +75,47 @@ getent group hq
 chmod +x remove_users.sh
 ./remove_users.sh
 
-Шаг 1.4. apt install slapd ldap-utils -y
-Проль для Administrator P@$$word
-
-nano /etc/ldap/slapd.conf
-database bdb
-suffix "dc=au-team,dc=irpo"
-rootdn "cn=admin,dc=au-team,dc=irpo"
-rootpw {SSHA}your_secret_password_here
-directory /var/lib/ldap
-
-tee /etc/ldap/ldapadds.ldif << 'EOF'
-dn: dc=au-team,dc=irpo
-objectClass: top
-objectClass: dcObject
-objectClass: organization
-o: AU-TEAM
-dc: au-team
-
-dn: cn=admin,dc=au-team,dc=irpo
-objectClass: simpleSecurityObject
-objectClass: organizationalRole
-cn: admin
-description: LDAP Administrator
-userPassword: $(slappasswd -s P@$$word | sed 's/\$/\\$/g')
-
-dn: ou=People,dc=au-team,dc=irpo
-objectClass: organizationalUnit
-ou: People
-
-dn: ou=Groups,dc=au-team,dc=irpo
-objectClass: organizationalUnit
-ou: Groups
-
-dn: ou=Computers,dc=au-team,dc=irpo
-objectClass: organizationalUnit
-ou: Computers
-
-ldapadd -Y EXTERNAL -H ldapi:/// -f /etc/ldap/ldapadds.ldif
-
-ldapmodify -Y EXTERNAL -H ldapi:/// << 'EOF'
-dn: olcDatabase={1}mdb,cn=config
-changetype: modify
-replace: olcSuffix
-olcSuffix: dc=au-team,dc=irpo
-
-dn: olcDatabase={1}mdb,cn=config
-changetype: modify
-replace: olcRootDN
-olcRootDN: cn=admin,dc=au-team,dc=irpo
-
-dn: olcDatabase={1}mdb,cn=config
-changetype: modify
-replace: olcRootPW
-olcRootPW: $(slappasswd -s P@$$word | sed 's/\$/\\$/g')
-
-slapcat -n 0 | grep -E 'olcSuffix|olcRootDN'
-
-systemctl restart slapd
-
-В файле /etc/samba/smb.conf убедитесь в наличии:
-[global]
-    passdb backend = ldapsam:ldap://localhost
-    ldap suffix = dc=au-team,dc=irpo
-    ldap user suffix = ou=People
-    ldap group suffix = ou=Groups
-    ldap machine suffix = ou=Computers
-    ldap admin dn = cn=admin,dc=au-team,dc=irpo
-    ldap ssl = off
-
-sudo ldapadd -x -D cn=admin,dc=au-team,dc=irpo -w your_secret_password_here -f /etc/ldap/ldapadds.ldif
-
-Шаг 1.4: Настройка Samba для домена
+Шаг 1.2: Настройка Samba для домена
 mv /etc/samba/smb.conf /etc/samba/smb.conf.bak
 tee /etc/samba/smb.conf << 'EOF'
 [global]
-workgroup = AU-TEAM
-server string = BR-SRV Samba Server
-netbios name = br-srv
-security = user
-map to guest = Bad User
-dns proxy = no
-idmap config * : backend = tdb
-passdb backend = ldapsam:ldap://localhost
-    ldap admin dn = cn=admin,dc=au-team,dc=irpo
-    ldap suffix = dc=au-team,dc=irpo
-    ldap user suffix = ou=People
-    ldap group suffix = ou=Groups
-    ldap machine suffix = ou=Computers
-    ldap ssl = off
+   workgroup = au-team.irpo
+   server string = BR-SRV Samba Server
+   netbios name = br-srv
+   interfaces = 192.168.200.2
+   bind interfaces only = yes
+   security = user
+   map to guest = Bad User
+   dns proxy = no
+   idmap config * : backend = tdb
 
-systemctl restart smbd nmbd
-sudo ldapadd -x -D cn=admin,dc=au-team,dc=irpo -w P@$$word -f /etc/ldap/ldapadds.ldif
+[Shared]
+   path = /srv/shared
+   force group = hq
+   writable = yes
+   create mask = 2770
+   directory mask = 2770
+   force user = sshuser
+   force group = hq
+EOF
+
+Шаг 1.3. Создаем пользователя и пароль для samba. Пароль я использую P@ssw0rd
+smbpasswd -a sshuser
 
 Шаг 1.5: Создание общего каталога и прав
 mkdir -p /srv/shared
 chmod 2770 /srv/shared
 chgrp hq /srv/shared
 
-7. Связывание Samba с LDAP
-sudo smbpasswd -W
-
 Шаг 1.6: Перезапуск Samba
 systemctl restart smbd nmbd
 
 9. Проверка работоспособности
-smbclient -L localhost -U%
+smbclient //br-srv/Shared -U sshuser
 
 10. Присоединение клиента к домену
 На HQ-CLI выполните:
-net ads join -U Administrator%P@$$word
+net ads join -U sshuser%P@$$word
 
 Шаг 1.7: Настройка sudo для группы hq
 echo "%hq ALL=(ALL) NOPASSWD: /bin/grep, /bin/cat, /usr/bin/id" >> /etc/sudoers
