@@ -1,11 +1,14 @@
 #!/bin/bash
+
 if ! getent group hq &> /dev/null; then
     sudo groupadd hq
     echo "Группа hq создана"
 else
     echo "Группа hq уже существует"
 fi
+
 password_hash=$(openssl passwd -1 'P@$$word')
+
 for i in {1..5}; do
     username="user${i}.hq"
     # Создаем пользователя
@@ -13,12 +16,60 @@ for i in {1..5}; do
     # Проверяем, успешно ли создан пользователь
     if [ $? -eq 0 ]; then
         echo "Пользователь $username успешно создан"
+        # Дополнительно проверяем, существует ли пользователь
+        if getent passwd "$username" &> /dev/null; then
+            echo "Пользователь $username существует в системе"
+        else
+            echo "Ошибка: Пользователь $username не найден в системе" >&2
+        fi
     else
         echo "Ошибка при создании пользователя $username" >&2
     fi
 done
+
 echo -e "\nСписок созданных пользователей:"
 getent passwd | grep -E "user[1-5]\.hq"
 
 chmod +x users.sh
 sudo ./users.sh
+
+
+#!/bin/bash
+
+# Удаление пользователей
+for i in {1..5}; do
+    username="user${i}.hq"
+    
+    if id "$username" &>/dev/null; then
+        sudo userdel -r "$username" 2>/dev/null
+        if [ $? -eq 0 ]; then
+            echo "Пользователь $username успешно удален"
+        else
+            echo "Ошибка при удалении пользователя $username" >&2
+        fi
+    else
+        echo "Пользователь $username не существует"
+    fi
+done
+
+# Удаление группы (только если она пустая)
+if getent group hq &>/dev/null; then
+    sudo groupdel hq 2>/dev/null
+    if [ $? -eq 0 ]; then
+        echo "Группа hq успешно удалена"
+    else
+        echo -e "\nНе удалось удалить группу hq. Возможные причины:"
+        echo "1. В группе остались пользователи"
+        echo "2. Группа используется как primary group для других пользователей"
+        echo "3. Нет прав для удаления"
+    fi
+else
+    echo "Группа hq не существует"
+fi
+
+echo -e "\nПроверка остатков:"
+getent passwd | grep 'hq$'
+getent group hq
+
+chmod +x remove_users.sh
+sudo ./remove_users.sh
