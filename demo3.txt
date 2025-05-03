@@ -32,15 +32,17 @@ EOF
 sudo ldapadd -Y EXTERNAL -H ldapi:/// -f /etc/ldap/ldapadds.ldif
 
 Настройте LDAP через OLC:
-sudo ldapmodify -Y EXTERNAL -H ldapi:/// << 'EOF'
+ldapmodify -Y EXTERNAL -H ldapi:/// << 'EOF'
 dn: olcDatabase={1}mdb,cn=config
 changetype: modify
 replace: olcSuffix
 olcSuffix: dc=au-team,dc=irpo
+
 dn: olcDatabase={1}mdb,cn=config
 changetype: modify
 replace: olcRootDN
 olcRootDN: cn=admin,dc=au-team,dc=irpo
+
 dn: olcDatabase={1}mdb,cn=config
 changetype: modify
 replace: olcRootPW
