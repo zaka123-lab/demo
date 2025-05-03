@@ -1,75 +1,196 @@
-#!/bin/bash
+Шаги для устранения ошибок и успешного присоединения HQ-CLI к домену BR-SRV
+1. Исправление ошибки при импорте ldapadds.ldif
+Ошибка:
+ldap_add: Already exists (68)
+Причина:
+Запись dc=au-team,dc=irpo уже существует в LDAP.
+Решение:
+Удалите существующую структуру LDAP и повторите импорт.
+sudo ldapdelete -Y EXTERNAL -H ldapi:/// -D cn=admin,dc=au-team,dc=irpo -w P@$$word "dc=au-team,dc=irpo"
+sudo ldapadd -Y EXTERNAL -H ldapi:/// -f /etc/ldap/ldapadds.ldif
 
-if ! getent group hq &> /dev/null; then
-    sudo groupadd hq
-    echo "Группа hq создана"
-else
-    echo "Группа hq уже существует"
-fi
+2. Исправление ошибки при модификации LDAP через ldapmodify
+Ошибка:
+ldap_modify: Constraint violation (19)
+additional info: <olcRootPW> extra cruft after <password>
+Причина:
+Неправильный формат пароля в команде ldapmodify.
 
-password_hash=$(openssl passwd -1 'P@$$word')
+Решение:
+Используйте утилиту slappasswd для корректного хеширования пароля.
+sudo ldapmodify -Y EXTERNAL -H ldapi:/// << 'EOF'
+dn: olcDatabase={1}mdb,cn=config
+changetype: modify
+replace: olcRootPW
+olcRootPW: $(slappasswd -s P@$$word)
+EOF
 
-for i in {1..5}; do
-    username="user${i}.hq"
-    # Создаем пользователя
-    sudo useradd -m -g hq -p "$password_hash" "$username"
-    # Проверяем, успешно ли создан пользователь
-    if [ $? -eq 0 ]; then
-        echo "Пользователь $username успешно создан"
-        # Дополнительно проверяем, существует ли пользователь
-        if getent passwd "$username" &> /dev/null; then
-            echo "Пользователь $username существует в системе"
-        else
-            echo "Ошибка: Пользователь $username не найден в системе" >&2
-        fi
-    else
-        echo "Ошибка при создании пользователя $username" >&2
-    fi
-done
+3. Исправление ошибки при запуске smbd.service
+Ошибка:
+pdb backend ldapsam:ldap://localhost did not corre
+Причина:
+Неправильная конфигурация Samba или отсутствие связывания с LDAP.
 
-echo -e "\nСписок созданных пользователей:"
-getent passwd | grep -E "user[1-5]\.hq"
+Решение:
+Убедитесь, что в файле smb.conf указаны корректные параметры для LDAP.
+[global]
+passdb backend = ldapsam:ldap://localhost
+ldap admin dn = cn=admin,dc=au-team,dc=irpo
+ldap suffix = dc=au-team,dc=irpo
+ldap user suffix = ou=People
+ldap group suffix = ou=Groups
+ldap machine suffix = ou=Computers
+ldap ssl = off
 
-chmod +x users.sh
-sudo ./users.sh
+Перезагрузите службы:
+sudo systemctl restart smbd nmbd
 
+4. Исправление ошибки при выполнении smbclient -L localhost -U%
+Ошибка:
+bash: smbclient: command not found
+Причина:
+Отсутствие установленного пакета smbclient.
 
-#!/bin/bash
+Решение:
+Установите smbclient на BR-SRV.
+sudo apt install samba-client -y
 
-# Удаление пользователей
-for i in {1..5}; do
-    username="user${i}.hq"
-    
-    if id "$username" &>/dev/null; then
-        sudo userdel -r "$username" 2>/dev/null
-        if [ $? -eq 0 ]; then
-            echo "Пользователь $username успешно удален"
-        else
-            echo "Ошибка при удалении пользователя $username" >&2
-        fi
-    else
-        echo "Пользователь $username не существует"
-    fi
-done
+5. Исправление ошибки при присоединении HQ-CLI к домену
+Ошибка:
+Host is not configured as a member server.
+Invalid configuration. Exiting....
+Failed to join domain: This operation is only allowed for the PDC of the domain.
 
-# Удаление группы (только если она пустая)
-if getent group hq &>/dev/null; then
-    sudo groupdel hq 2>/dev/null
-    if [ $? -eq 0 ]; then
-        echo "Группа hq успешно удалена"
-    else
-        echo -e "\nНе удалось удалить группу hq. Возможные причины:"
-        echo "1. В группе остались пользователи"
-        echo "2. Группа используется как primary group для других пользователей"
-        echo "3. Нет прав для удаления"
-    fi
-else
-    echo "Группа hq не существует"
-fi
+Причина:
+BR-SRV не настроен как Primary Domain Controller (PDC).
 
-echo -e "\nПроверка остатков:"
-getent passwd | grep 'hq$'
-getent group hq
+Решение:
+Настройте BR-SRV как PDC, добавив следующие параметры в smb.conf:
 
-chmod +x remove_users.sh
-sudo ./remove_users.sh
+[global]
+domain master = yes
+local master = yes
+preferred master = yes
+os level = 32
+Сохраните изменения и перезагрузите службы:
+
+sudo systemctl restart smbd nmbd
+
+Теперь попробуйте присоединить HQ-CLI к домену:
+
+sudo net ads join -U Administrator%P@$$word
+
+Полные шаги для настройки BR-SRV и присоединения HQ-CLI
+На BR-SRV:
+Установите LDAP-сервер и утилиты:
+sudo apt update -y && sudo apt install slapd ldap-utils samba-client -y
+
+Создайте файл ldapadds.ldif:
+sudo tee /etc/ldap/ldapadds.ldif << 'EOF'
+dn: dc=au-team,dc=irpo
+objectClass: top
+objectClass: dcObject
+objectClass: organization
+o: AU-TEAM
+dc: au-team
+dn: cn=admin,dc=au-team,dc=irpo
+objectClass: simpleSecurityObject
+objectClass: organizationalRole
+cn: admin
+description: LDAP Administrator
+userPassword: $(slappasswd -s P@$$word | sed 's/$/\$/g')
+dn: ou=People,dc=au-team,dc=irpo
+objectClass: organizationalUnit
+ou: People
+dn: ou=Groups,dc=au-team,dc=irpo
+objectClass: organizationalUnit
+ou: Groups
+dn: ou=Computers,dc=au-team,dc=irpo
+objectClass: organizationalUnit
+ou: Computers
+EOF
+
+Импортируйте структуру LDAP:
+sudo ldapadd -Y EXTERNAL -H ldapi:/// -f /etc/ldap/ldapadds.ldif
+
+Настройте LDAP через OLC:
+sudo ldapmodify -Y EXTERNAL -H ldapi:/// << 'EOF'
+dn: olcDatabase={1}mdb,cn=config
+changetype: modify
+replace: olcSuffix
+olcSuffix: dc=au-team,dc=irpo
+dn: olcDatabase={1}mdb,cn=config
+changetype: modify
+replace: olcRootDN
+olcRootDN: cn=admin,dc=au-team,dc=irpo
+dn: olcDatabase={1}mdb,cn=config
+changetype: modify
+replace: olcRootPW
+olcRootPW: $(slappasswd -s P@$$word)
+EOF
+
+Перезагрузите LDAP-сервер:
+sudo systemctl restart slapd
+
+Настройте файл smb.conf:
+sudo tee /etc/samba/smb.conf << 'EOF'
+[global]
+workgroup = AU-TEAM
+server string = BR-SRV Samba Server
+netbios name = br-srv
+security = user
+map to guest = Bad User
+dns proxy = no
+idmap config * : backend = tdb
+passdb backend = ldapsam:ldap://localhost
+ldap admin dn = cn=admin,dc=au-team,dc=irpo
+ldap suffix = dc=au-team,dc=irpo
+ldap user suffix = ou=People
+ldap group suffix = ou=Groups
+ldap machine suffix = ou=Computers
+ldap ssl = off
+domain master = yes
+local master = yes
+preferred master = yes
+os level = 32
+[Shared]
+path = /srv/shared
+force group = hq
+writable = yes
+EOF
+
+Создайте общий каталог и настройте права:
+sudo mkdir -p /srv/shared
+sudo chmod 2770 /srv/shared
+sudo chgrp hq /srv/shared
+
+Связывание Samba с LDAP:
+sudo smbpasswd -W
+
+Введите пароль: P@$$word
+Перезагрузите службы Samba:
+sudo systemctl restart smbd nmbd
+
+Проверьте доступность общего ресурса:
+```bash
+smbclient -L localhost -U%
+```
+На HQ-CLI:
+Установите Samba-клиент:
+sudo apt install samba-client -y
+
+Присоедините HQ-CLI к домену:
+sudo net ads join -U Administrator%P@$$word
+
+Проверьте присоединение:
+sudo net ads testjoin
+
+Результат:
+Joined 'HQ-CLI' to realm 'au-team.irpo'
+
+Проверка:
+
+sudo net ads testjoin
+
+Результат: Join is OK
+Теперь HQ-CLI успешно присоединен к домену BR-SRV.
