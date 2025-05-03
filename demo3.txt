@@ -1,23 +1,21 @@
 #!/bin/bash
 if ! getent group hq &> /dev/null; then
-
-sudo groupadd hq
-echo "Группа hq создана"
+    sudo groupadd hq
+    echo "Группа hq создана"
 else
-
-echo "Группа hq уже существует"
-fi password_hash=$(openssl passwd -1 'P@$$word')
-for i in {1..5}; do
-
-username="user${i}.hq"
-# Создаем пользователя
-sudo useradd -m -g hq -p "$password_hash" "$username"
-# Проверяем, успешно ли создан пользователь
-if [ $? -eq 0 ]; then
-    echo "Пользователь $username успешно создан"
-else
-    echo "Ошибка при создании пользователя $username" >&2
+    echo "Группа hq уже существует"
 fi
+password_hash=$(openssl passwd -1 'P@$$word')
+for i in {1..5}; do
+    username="user${i}.hq"
+    # Создаем пользователя
+    sudo useradd -m -g hq -p "$password_hash" "$username"
+    # Проверяем, успешно ли создан пользователь
+    if [ $? -eq 0 ]; then
+        echo "Пользователь $username успешно создан"
+    else
+        echo "Ошибка при создании пользователя $username" >&2
+    fi
 done
 echo -e "\nСписок созданных пользователей:"
 getent passwd | grep 'hq$'
