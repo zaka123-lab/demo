@@ -102,18 +102,7 @@ chgrp hq /srv/shared
 Шаг 1.6: Перезапуск Samba
 systemctl restart smbd nmbd
 
-Шаг 1.7: Импорт пользователей из файла users.csv
-# Создайте файл /opt/users.csv с содержимым:
-# username,password
-# user1.hq,P@$$word
-# user2.hq,P@$$word
-# ...
-# Затем выполните:
-while IFS=, read -r username password; do
-  useradd -m -g hq -p $(openssl passwd -1 "$password") "$username"
-done < /opt/users.csv
-
-Шаг 1.8: Настройка sudo для группы hq
+Шаг 1.7: Настройка sudo для группы hq
 echo "%hq ALL=(ALL) NOPASSWD: /bin/grep, /bin/cat, /usr/bin/id" >> /etc/sudoers
 
 Шаг 1.8: Присоединение HQ-CLI к домену
