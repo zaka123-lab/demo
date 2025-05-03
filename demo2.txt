@@ -79,8 +79,11 @@ chmod +x remove_users.sh
 mv /etc/samba/smb.conf /etc/samba/smb.conf.bak
 tee /etc/samba/smb.conf << 'EOF'
 [global]
-   workgroup = au-team.irpo
+   workgroup = au-team
+   realm = au-team.irpo
+   password server = 192.168.100.2
    server string = BR-SRV Samba Server
+   password server = 192.168.100.2
    netbios name = br-srv
    interfaces = 192.168.200.2
    bind interfaces only = yes
