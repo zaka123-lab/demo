@@ -86,13 +86,16 @@ security = user
 map to guest = Bad User
 dns proxy = no
 idmap config * : backend = tdb
+passdb backend = ldapsam:ldap://localhost
+ldap admin dn = cn=admin,dc=au-team,dc=irpo
+ldap suffix = dc=au-team,dc=irpo
+ldap user suffix = ou=People
+ldap group suffix = ou=Groups
+ldap machine suffix = ou=Computers
 [Shared]
 path = /srv/shared
 force group = hq
 writable = yes
-force directory mode = 2770
-force file mode = 2660
-
 
 Шаг 1.5: Создание общего каталога и прав
 mkdir -p /srv/shared
