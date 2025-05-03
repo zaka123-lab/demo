@@ -11,18 +11,22 @@ objectClass: dcObject
 objectClass: organization
 o: AU-TEAM
 dc: au-team
+
 dn: cn=admin,dc=au-team,dc=irpo
 objectClass: simpleSecurityObject
 objectClass: organizationalRole
 cn: admin
 description: LDAP Administrator
-userPassword: $(slappasswd -s P@$$word | sed 's/$/\$/g')
+userPassword: {SSHA}$(slappasswd -s P@$$word)
+
 dn: ou=People,dc=au-team,dc=irpo
 objectClass: organizationalUnit
 ou: People
+
 dn: ou=Groups,dc=au-team,dc=irpo
 objectClass: organizationalUnit
 ou: Groups
+
 dn: ou=Computers,dc=au-team,dc=irpo
 objectClass: organizationalUnit
 ou: Computers
