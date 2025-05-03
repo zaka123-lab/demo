@@ -81,9 +81,7 @@ EOF
 
 Создайте общий каталог и настройте права:
 sudo mkdir -p /srv/shared
-
 sudo chmod 2770 /srv/shared
-
 sudo chgrp hq /srv/shared
 
 Связывание Samba с LDAP:
@@ -92,6 +90,9 @@ sudo smbpasswd -W
 Введите пароль: P@$$word
 Перезагрузите службы Samba:
 sudo systemctl restart smbd nmbd
+
+sudo journalctl -u slapd
+sudo journalctl -u smbd
 
 Проверьте доступность общего ресурса:
 smbclient -L localhost -U%
@@ -114,54 +115,6 @@ sudo net ads testjoin
 
 Результат: Join is OK
 Теперь HQ-CLI успешно присоединен к домену BR-SRV.
-
-Полный конфигурационный файл smb.conf для BR-SRV:
-[global]
-workgroup = AU-TEAM
-server string = BR-SRV Samba Server
-netbios name = br-srv
-security = user
-map to guest = Bad User
-dns proxy = no
-idmap config * : backend = tdb
-passdb backend = ldapsam:ldap://localhost
-ldap admin dn = cn=admin,dc=au-team,dc=irpo
-ldap suffix = dc=au-team,dc=irpo
-ldap user suffix = ou=People
-ldap group suffix = ou=Groups
-ldap machine suffix = ou=Computers
-ldap ssl = off
-domain master = yes
-local master = yes
-preferred master = yes
-os level = 32
-[Shared]
-path = /srv/shared
-force group = hq
-writable = yes
-
-Полный файл ldapadds.ldif:
-dn: dc=au-team,dc=irpo
-objectClass: top
-objectClass: dcObject
-objectClass: organization
-o: AU-TEAM
-dc: au-team
-dn: cn=admin,dc=au-team,dc=irpo
-objectClass: simpleSecurityObject
-objectClass: organizationalRole
-cn: admin
-description: LDAP Administrator
-userPassword: $(slappasswd -s P@$$word | sed 's/$/\$/g')
-dn: ou=People,dc=au-team,dc=irpo
-objectClass: organizationalUnit
-ou: People
-dn: ou=Groups,dc=au-team,dc=irpo
-objectClass: organizationalUnit
-ou: Groups
-dn: ou=Computers,dc=au-team,dc=irpo
-objectClass: organizationalUnit
-ou: Computers
 
 Команды для проверки:
 Проверка LDAP:
