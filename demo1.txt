@@ -27,7 +27,7 @@ apt update -y (пищим на всех )
 sed -i 's/^#\s*\(net.ipv4.ip_forward=1\)/\1/' /etc/sysctl.conf && iptables -t nat -A POSTROUTING -j MASQUERADE && apt install iptables-persistent -y && netfilter-persistent save && sysctl -w net.ipv4.ip_forward=1
 
 После выполнения 1.4, если не пингует 
-iptables -t nat -A POSTROUTING -j MASQUERADE && apt install iptables-persistent -y && netfilter-persistent save
+iptables -t nat -A POSTROUTING -j MASQUERADE && apt install iptables-persistent -y && sysctl -w net.ipv4.ip_forward=1 && netfilter-persistent save
 
 1.5. После настройки IPv4 на HQ-RTR, BR-RTR
 Надо прописать руками в /etc/hosts от верха на 3 строчке то что в скобках не надо, это написано на каких устройствах делать
@@ -44,12 +44,10 @@ echo "net_admin ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 192.168.200.1/27 8.8.8.8 (ens4)
 192.168.200.2/27 192.168.200.1 8.8.8.8 (ens3 HQ-SRV)
 
-1.8. Настройка интерфейса у HQ-SRV ens3 после того как выполнишь пункт
-
-1.9. и потом на HQ-SRV через nmtui
+1.8. И потом на HQ-SRV через nmtui
 192.168.100.2/26 192.168.100.1 8.8.8.8 ( Можно сразу указать IPv4 на HQ-SRV, пинга у вас не буте пока не сделаете пункт 2 полностью на HQ-RTR)
 
-1.10. Также указываем в /etc/hosts и не забудь поменять имя припомощи nmtui, SET system hostname
+1.9. Также указываем в /etc/hosts и не забудь поменять имя припомощи nmtui, SET system hostname
 nano /etc/hosts
 192.168.100.2   hq-srv.au-team.irpo
 
@@ -115,7 +113,7 @@ systemctl restart isc-dhcp-server
 Проверим наш IP адрес и скопируй его
 ip –c –br a 
 
-3.5. Также открываем /etc/hosts
+3.5. Также открываем /etc/hosts на HQ-CLI
 nano /etc/hosts
 Наше скопированый IP   hq-cli.au-team.irpo
 
@@ -144,8 +142,6 @@ ens3
 172.16.4.2 
 manual
 10.10.0.2/30
-
-После сохранения nmtui скопируй и вставь терминал
 nmcli connection modify tun1 ip-tunnel.ttl 64
 
 5. Устанавливаем протокол динамической маршрутизации HQ-RTR BR-RTR
@@ -246,6 +242,7 @@ tee /etc/ssh-banner << 'EOF'
 *  Authorized access only   *
 *                           *
 *****************************
+EOF
 
 Перезагрузка
 systemctl restart sshd
@@ -292,7 +289,7 @@ EOF
 mkdir /etc/bind/zones 
 cp -r /etc/bind/db.local /etc/bind/zones/au-team.db 
 
-8.6. Удалим и создадим создадим зону au-team.db в конце EOF
+8.6. Удалим и создадим создадим зону au-team.db
 rm -rf /etc/bind/zones/au-team.db
 tee /etc/bind/zones/au-team.db << 'EOF'
 ;
@@ -315,9 +312,9 @@ hq-cli  IN      A       192.168.100.66
 br-srv  IN      A       192.168.200.2
 moodle  CNAME   moodle.au-team.irpo.
 wiki    CNAME   wiki.au-team.irpo.
+EOF
 
-
-7.7. Создадим зону обратного просмотра в конце EOF
+7.7. Создадим зону обратного просмотра
 cp -r /etc/bind/db.127 /etc/bind/zones/au-team_rev.db   
 rm -rf /etc/bind/zones/au-team_rev.db
 tee /etc/bind/zones/au-team_rev.db << 'EOF'
@@ -336,6 +333,7 @@ $TTL    604800
 1       IN      PTR     hq-rtr.au-team.irpo.
 2       IN      PTR     hq-srv.au-team.irpo.
 66      IN      PTR     hq-cli.au-team.irpo.
+EOF
 
 7.8. Назначаем владельца и права. 
 chown -R root /etc/bind/zones && chown 0640 /etc/bind/zones/* 
