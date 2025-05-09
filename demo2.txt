@@ -79,8 +79,8 @@ chmod +x remove_users.sh
 mv /etc/samba/smb.conf /etc/samba/smb.conf.bak
 tee /etc/samba/smb.conf << 'EOF'
 [global]
-   workgroup = au-team
-   realm = au-team.irpo
+   workgroup = AU-TEAM
+   realm = AU-TEAM.IRPO
    password server = 192.168.100.2
    server string = BR-SRV Samba Server
    password server = 192.168.100.2
@@ -102,6 +102,17 @@ tee /etc/samba/smb.conf << 'EOF'
    force group = hq
 EOF
 
+НА HQ-CLI
+[global]
+     workgroup = au-team
+     realm = au-team.irpo
+     security = ADS
+     password server = 192.168.100.2
+     netbios name = hq-cli
+     winbind use default domain = yes
+     idmap config * : backend = tdb
+     idmap config * : range = 10000-20000
+
 Шаг 1.3. Создаем пользователя и пароль для samba. Пароль я использую P@ssw0rd
 smbpasswd -a sshuser
 
@@ -116,18 +127,14 @@ systemctl restart smbd nmbd
 Шаг 1.7. Проверка работоспособности, можно на BR-SRV и также на HQ-CLI
 smbclient //br-srv.au-team.irpo/Shared -U sshuser
 
-Шаг 1.8. Присоединение клиента к домену
-На HQ-CLI выполните:
-net ads join -U sshuser%P@ssw0rd
-
 Шаг 1.7: Настройка sudo для группы hq
 echo "%hq ALL=(ALL) NOPASSWD: /bin/grep, /bin/cat, /usr/bin/id" >> /etc/sudoers
 
 Шаг 1.8: Присоединение HQ-CLI к домену
 # На HQ-CLI:
 apt install samba-client -y
-echo "password = P@$$word" > /tmp/join.conf
-net join -U Administrator
+echo "password = P@ssw0rd" > /tmp/join.conf
+net join -U sshuser
 
 2. Настройка файлового хранилища на HQ-SRV
 Шаг 2.1: Добавление дисков RAID 5
