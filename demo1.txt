@@ -24,7 +24,7 @@ apt update -y (пищим на всех )
 1.4. Настройка динамической сетевой трансляции в сторону HQ-RTR и BR-RTR и ISP
 для доступа к сети Интернет
 Включаем форвардинг
-sed -i 's/^#\s*\(net.ipv4.ip_forward=1\)/\1/' /etc/sysctl.conf && iptables -t nat -A POSTROUTING -j MASQUERADE && apt install iptables-persistent -y && netfilter-persistent save && sysctl -w net.ipv4.ip_forward=1
+sed -i 's/^#\s*\(net.ipv4.ip_forward=1\)/\1/' /etc/sysctl.conf && iptables -t nat -A POSTROUTING -j MASQUERADE && apt install iptables-persistent -y && sysctl -w net.ipv4.ip_forward=1 && netfilter-persistent save
 
 После выполнения 1.4, если не пингует 
 iptables -t nat -A POSTROUTING -j MASQUERADE && apt install iptables-persistent -y && sysctl -w net.ipv4.ip_forward=1 && netfilter-persistent save
