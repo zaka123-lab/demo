@@ -157,7 +157,6 @@ passive-interface default
 network 10.10.0.0/30 area 0
 network 192.168.100.0/26 area 0
 network 192.168.100.64/28 area 0
-network 192.168.200.0/27 area 0
 no passive-interface tun1
 area 0 authentication
 exit
@@ -183,7 +182,6 @@ router-id 2.2.2.2
 passive-interface default
 network 10.10.0.0/30 area 0
 network 192.168.100.0/26 area 0
-network 192.168.200.0/27 area 0 
 no passive-interface tun1
 area 0 authentication
 exit 
@@ -203,7 +201,7 @@ systemctl restart frr
 пишем ip route add 192.168.200.0/27 via 10.10.0.2 
 и пинг пошел, то поздравляю вас, у вас косяк с frr, OSPF заново пункт 6.2. и 6.5. и перезагружай
 HQ-RTR, BR-RTR и если пинг пошел по все ты поченил, если нет выполни опять команду ip route add 192.168.200.0/27 via 10.10.0.2
-и если опять с этой командой пшел пинг, то удаляй HQ-RTR и BR-RTR и создавай заново и делай все внимательно!!!
+и если опять с этой командой непошел пинг, то удаляй на HQ-RTR и BR-RTR кмонадной apt purge frr -y && apt install frr -y и делай все внимательно!!!
 
 6. Настройка безопасного удаленного доступа на серверах HQ-SRV и BR-SRV
 6.1. Настройка IPv4 припомощи nmtui, (192.168.200.2 192.168.200.2 8.8.8.8 (ens3 BR-SRV) имя для интерфейса BR-RTR, и не забудь поменять
