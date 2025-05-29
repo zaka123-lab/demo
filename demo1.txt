@@ -163,7 +163,6 @@ no passive-interface tun1
 area 0 authentication
 exit
 interface tun1
-#no ip ospf passive
 no ip ospf network broadcast
 ip ospf authentication
 ip ospf authentication-key password
