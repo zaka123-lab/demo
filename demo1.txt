@@ -17,7 +17,6 @@ apt update -y (пищим на всех )
 Пишем при помощи nmtui (IPv4 Manual IP 172.16.4.2/28 172.16.4.1 8.8.8.8 (ens3 HQ-RTR)) имя для интерфейса ISP
 и также в nmtui, через опцию Set system hostname задать имя hq-rtr.au-team.irpo
 
-
 Пишем при помощи nmtui (IPv4 Manual IP 172.16.5.2/28 172.16.5.1 8.8.8.8 (ens3 BR-RTR) имя для интерфейса ISP
 и также в nmtui, через опцию Set system hostname задать имя br-rtr.au-team.irpo
 192.168.200.2/27 8.8.8.8 (ens4 BR-RTR)) имя для интерфейса BR-SRV
