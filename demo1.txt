@@ -214,8 +214,9 @@ nano /etc/hosts
 192.168.200.2   br-srv.au-team.irpo
 
 6.3. Создаем sshuser на серверах HQ-SRV и BR-SRV
-groupadd sshuser 
-useradd -m -g sshuser -p $(openssl passwd -1 P@ssw0rd) sshuser -u 1010
+groupadd sshuser
+PASS_HASH=$(openssl passwd -1 'P@ssw0rd')
+useradd -m -g sshuser -p "$PASS_HASH" sshuser -u 1010
 echo "sshuser ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 
 6.4. Устанавливаем Selinux
