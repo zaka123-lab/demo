@@ -37,7 +37,7 @@ nano /etc/hosts
 
 1.6. Создаем net_admin на роутерах HQ-RTR и BR-RTR
 groupadd net_admin 
-useradd -m -g net_admin -p $(openssl passwd -1 P@$$word) net_admin 
+useradd -m -g net_admin -p '$(openssl passwd -1 "P@$$word")' net_admin
 echo "net_admin ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 
 1.7. Настройка интерфейс ens4 у BR-RTR и BR-SRV(ens3) через nmtui
