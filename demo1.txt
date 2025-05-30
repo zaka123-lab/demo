@@ -206,6 +206,7 @@ network 192.168.200.0/27 area 0
 area 0 authentication message-digest
 end
 write memory
+exit
 systemctl restart frr
 
 6. Настройка безопасного удаленного доступа на серверах HQ-SRV и BR-SRV
