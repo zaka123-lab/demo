@@ -7,6 +7,8 @@ no passive-interface tun1
 network 192.168.100.0/26 area 0
 network 192.168.200.0/27 area 0
 interface tun1
+ip address 10.10.0.2/30
+ip ospf interface-id 10.10.0.2
 ip ospf authentication
 ip ospf authentication-key password
 exit
@@ -23,6 +25,8 @@ no passive-interface tun1
 network 192.168.100.0/26 area 0
 network 192.168.200.0/27 area 0
 interface tun1
+ip address 10.10.0.1/30
+ip ospf interface-id 10.10.0.1
 ip ospf authentication
 ip ospf authentication-key password
 exit
