@@ -1,131 +1,29 @@
-Полный конфиг для настройки BR-SRV и присоединения HQ-CLI
-На BR-SRV:
-Установите необходимые пакеты:
-sudo apt update -y && sudo apt install slapd ldap-utils samba-client -y
+router ospf
+router-id 1.1.1.1
+passive-interface default
+no passive-interface tun1
+network 10.10.0.0/30 area 0
+network 192.168.100.0/24 area 0
+exit 
+interface tun1
+ip ospf authentication
+ip ospf authentication-key password
+end
+write
+exit
+systemctl restart frr
 
-Создайте файл ldapadds.ldif:
-sudo tee /etc/ldap/ldapadds.ldif << 'EOF'
-dn: dc=au-team,dc=irpo
-objectClass: top
-objectClass: dcObject
-objectClass: organization
-o: AU-TEAM
-dc: au-team
-
-dn: cn=admin,dc=au-team,dc=irpo
-objectClass: simpleSecurityObject
-objectClass: organizationalRole
-cn: admin
-description: LDAP Administrator
-userPassword: {SSHA}$(slappasswd -s P@$$word)
-
-dn: ou=People,dc=au-team,dc=irpo
-objectClass: organizationalUnit
-ou: People
-
-dn: ou=Groups,dc=au-team,dc=irpo
-objectClass: organizationalUnit
-ou: Groups
-
-dn: ou=Computers,dc=au-team,dc=irpo
-objectClass: organizationalUnit
-ou: Computers
-EOF
-
-Импортируйте структуру LDAP:
-sudo ldapadd -Y EXTERNAL -H ldapi:/// -f /etc/ldap/ldapadds.ldif
-
-Настройте LDAP через OLC:
-ldapmodify -Y EXTERNAL -H ldapi:/// << 'EOF'
-dn: olcDatabase={1}mdb,cn=config
-changetype: modify
-replace: olcSuffix
-olcSuffix: dc=au-team,dc=irpo
-
-dn: olcDatabase={1}mdb,cn=config
-changetype: modify
-replace: olcRootDN
-olcRootDN: cn=admin,dc=au-team,dc=irpo
-
-dn: olcDatabase={1}mdb,cn=config
-changetype: modify
-replace: olcRootPW
-olcRootPW: $(slappasswd -s P@$$word)
-EOF
-
-Перезагрузите LDAP-сервер:
-sudo systemctl restart slapd
-
-Настройте файл smb.conf:
-sudo tee /etc/samba/smb.conf << 'EOF'
-[global]
-workgroup = AU-TEAM
-server string = BR-SRV Samba Server
-netbios name = br-srv
-security = user
-map to guest = Bad User
-dns proxy = no
-idmap config * : backend = tdb
-passdb backend = ldapsam:ldap://localhost
-ldap admin dn = cn=admin,dc=au-team,dc=irpo
-ldap suffix = dc=au-team,dc=irpo
-ldap user suffix = ou=People
-ldap group suffix = ou=Groups
-ldap machine suffix = ou=Computers
-ldap ssl = off
-domain master = yes
-local master = yes
-preferred master = yes
-os level = 32
-[Shared]
-path = /srv/shared
-force group = hq
-writable = yes
-EOF
-
-Создайте общий каталог и настройте права:
-sudo mkdir -p /srv/shared
-sudo chmod 2770 /srv/shared
-sudo chgrp hq /srv/shared
-
-Связывание Samba с LDAP:
-sudo smbpasswd -W
-
-Введите пароль: P@$$word
-Перезагрузите службы Samba:
-sudo systemctl restart smbd nmbd
-
-sudo journalctl -u slapd
-sudo journalctl -u smbd
-
-Проверьте доступность общего ресурса:
-smbclient -L localhost -U%
-
-На HQ-CLI:
-Установите Samba-клиент:
-sudo apt install samba-client -y
-
-Присоедините HQ-CLI к домену:
-sudo net ads join -U Administrator%P@$$word
-
-Проверьте присоединение:
-sudo net ads testjoin
-
-Ожидаемый результат:
-Joined 'HQ-CLI' to realm 'au-team.irpo'
-
-Проверка:
-sudo net ads testjoin
-
-Результат: Join is OK
-Теперь HQ-CLI успешно присоединен к домену BR-SRV.
-
-Команды для проверки:
-Проверка LDAP:
-sudo slapcat
-
-Проверка Samba:
-sudo smbclient -L localhost -U%
-
-Проверка присоединения HQ-CLI:
-sudo net ads testjoin
+router ospf
+router-id 2.2.2.2
+passive-interface default
+no passive-interface tun1
+network 10.10.0.0/30 area 0
+network 192.168.100.0/24 area 0
+exit
+interface tun1
+ip ospf authentication
+ip ospf authentication-key password
+end
+write
+exit
+systemctl restart frr
