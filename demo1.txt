@@ -154,18 +154,20 @@ apt update && apt install -y frr && sed -i -e 's/zebra=no/zebra=yes/' -e 's/ospf
 vtysh
 conf t
 router ospf
-router-id 1.1.1.1
+ospf router-id 1.1.1.1
 passive-interface default
 no passive-interface tun1
 network 10.10.0.0/30 area 0
 network 192.168.100.0/26 area 0
 network 192.168.100.64/28 area 0
-area 0 authentication
+area 0 authentication message-digest
 exit
 interface tun1
-ip ospf authentication
-ip ospf authentication-key password
+ip ospf authentication message-digest
+ip ospf message-digest-key 1 md5 password
 ip ospf network point-to-point
+ip ospf hello-interval 10
+ip ospf dead-interval 40
 end
 write memory
 exit
@@ -179,17 +181,19 @@ apt update && apt install -y frr && sed -i -e 's/zebra=no/zebra=yes/' -e 's/ospf
 vtysh
 conf t
 router ospf
-router-id 2.2.2.2
+ospf router-id 2.2.2.2
 passive-interface default
 no passive-interface tun1
 network 10.10.0.0/30 area 0
 network 192.168.200.0/27 area 0
-area 0 authentication
+area 0 authentication message-digest
 exit
 interface tun1
-ip ospf authentication
-ip ospf authentication-key password
+ip ospf authentication message-digest
+ip ospf message-digest-key 1 md5 password
 ip ospf network point-to-point
+ip ospf hello-interval 10
+ip ospf dead-interval 40
 end
 write memory
 exit
