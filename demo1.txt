@@ -153,6 +153,18 @@ apt update && apt install -y frr && sed -i -e 's/zebra=no/zebra=yes/' -e 's/ospf
 5.2. Переходим в интерфейс управление симуляцией FRR при помощи vtysh 
 vtysh
 conf t
+# Базовые настройки
+hostname hq-rtr
+ip router-id 1.1.1.1
+# Настройка туннельного интерфейса tun1
+interface tun1
+ip address 10.10.0.1/30
+ip ospf authentication message-digest
+ip ospf message-digest-key 1 md5 password
+ip ospf network point-to-point
+ip ospf hello-interval 10
+ip ospf dead-interval 40
+# Настройка OSPF
 router ospf
 ospf router-id 1.1.1.1
 passive-interface default
@@ -161,13 +173,6 @@ network 10.10.0.0/30 area 0
 network 192.168.100.0/26 area 0
 network 192.168.100.64/28 area 0
 area 0 authentication message-digest
-exit
-interface tun1
-ip ospf authentication message-digest
-ip ospf message-digest-key 1 md5 password
-ip ospf network point-to-point
-ip ospf hello-interval 10
-ip ospf dead-interval 40
 end
 write memory
 exit
@@ -180,6 +185,18 @@ apt update && apt install -y frr && sed -i -e 's/zebra=no/zebra=yes/' -e 's/ospf
 5.5. Переходим в интерфейс управления симуляцией FRR при помощи vtysh 
 vtysh
 conf t
+# Базовые настройки
+hostname br-rtr
+ip router-id 2.2.2.2
+# Настройка туннельного интерфейса tun1
+interface tun1
+ip address 10.10.0.2/30
+ip ospf authentication message-digest
+ip ospf message-digest-key 1 md5 password
+ip ospf network point-to-point
+ip ospf hello-interval 10
+ip ospf dead-interval 40
+# Настройка OSPF
 router ospf
 ospf router-id 2.2.2.2
 passive-interface default
@@ -187,16 +204,8 @@ no passive-interface tun1
 network 10.10.0.0/30 area 0
 network 192.168.200.0/27 area 0
 area 0 authentication message-digest
-exit
-interface tun1
-ip ospf authentication message-digest
-ip ospf message-digest-key 1 md5 password
-ip ospf network point-to-point
-ip ospf hello-interval 10
-ip ospf dead-interval 40
 end
 write memory
-exit
 systemctl restart frr
 
 6. Настройка безопасного удаленного доступа на серверах HQ-SRV и BR-SRV
