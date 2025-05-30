@@ -148,63 +148,52 @@ nmcli connection modify tun1 ip-tunnel.ttl 64
 
 5. Устанавливаем протокол динамической маршрутизации HQ-RTR BR-RTR
 5.1. Устанавливаем пакет frr
-apt install frr -y && sed -i 's/ospfd=no/ospfd=yes/' /etc/frr/daemons && systemctl enable --now frr && systemctl restart frr
+apt update && apt install -y frr && sed -i -e 's/zebra=no/zebra=yes/' -e 's/ospfd=no/ospfd=yes/' /etc/frr/daemons && systemctl enable --now frr && systemctl restart frr
 	
 5.2. Переходим в интерфейс управление симуляцией FRR при помощи vtysh 
 vtysh
-conf
+conf t
 router ospf
 router-id 1.1.1.1
 passive-interface default
+no passive-interface tun1
 network 10.10.0.0/30 area 0
-network 192.168.200.0/27 area 0
 network 192.168.100.0/26 area 0
 network 192.168.100.64/28 area 0
-no passive-interface tun1
 area 0 authentication
 exit
 interface tun1
-no ip ospf network broadcast
 ip ospf authentication
 ip ospf authentication-key password
+ip ospf network point-to-point
 end
-write
+write memory
 exit
 systemctl restart frr
 
 5.4. Настройки OSPFv2 на BR-RTR
 Установка frr
-apt install frr -y && sed -i 's/ospfd=no/ospfd=yes/' /etc/frr/daemons && systemctl enable --now frr && systemctl restart frr
+apt update && apt install -y frr && sed -i -e 's/zebra=no/zebra=yes/' -e 's/ospfd=no/ospfd=yes/' /etc/frr/daemons && systemctl enable --now frr && systemctl restart frr
 
 5.5. Переходим в интерфейс управления симуляцией FRR при помощи vtysh 
-vtysh 
-conf
-router ospf 
-router-id 2.2.2.2 
+vtysh
+conf t
+router ospf
+router-id 2.2.2.2
 passive-interface default
+no passive-interface tun1
 network 10.10.0.0/30 area 0
 network 192.168.200.0/27 area 0
-network 192.168.100.0/26 area 0
-no passive-interface tun1
 area 0 authentication
-exit 
-interface tun1 
-#no ip ospf passive
-no ip ospf network broadcast
+exit
+interface tun1
 ip ospf authentication
-ip ospf authentication-key password 
+ip ospf authentication-key password
+ip ospf network point-to-point
 end
-write 
-exit 
+write memory
+exit
 systemctl restart frr
-
-Если с HQ-SRV не пингует BR-SRV то есть пинг любой на выбор
-шлюз 192.168.100.1 или уже сам IP 192.168.200.2
-то есть он не чего не выдает, а просто черный экран то на HQ-RTR
-пишем ip route add 192.168.200.0/27 via 10.10.0.2 
-и пинг пошел, то поздравляю вас, у вас косяк с frr, OSPF заново пункт 6.2. и 6.5. и перезагружай
-HQ-RTR, BR-RTR и если пинг пошел по все ты поченил, если нет выполни опять команду ip route add 192.168.200.0/27 via 10.10.0.2
-и если опять с этой командой непошел пинг, то удаляй на HQ-RTR и BR-RTR кмонадной apt purge frr -y && apt install frr -y и делай все внимательно!!!
 
 6. Настройка безопасного удаленного доступа на серверах HQ-SRV и BR-SRV
 6.1. Настройка IPv4 припомощи nmtui, (192.168.200.2 192.168.200.2 8.8.8.8 (ens3 BR-SRV) имя для интерфейса BR-RTR, и не забудь поменять
