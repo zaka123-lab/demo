@@ -1,29 +1,31 @@
+vtysh
+conf
 router ospf
 router-id 1.1.1.1
 passive-interface default
 no passive-interface tun1
-network 10.10.0.0/30 area 0
-network 192.168.100.0/24 area 0
-exit 
+network 192.168.100.0/26 area 0
+network 192.168.200.0/27 area 0
 interface tun1
 ip ospf authentication
 ip ospf authentication-key password
-end
-write
 exit
-systemctl restart frr
+end
+write memory
+exit
 
+vtysh
+conf
 router ospf
 router-id 2.2.2.2
 passive-interface default
 no passive-interface tun1
-network 10.10.0.0/30 area 0
-network 192.168.100.0/24 area 0
-exit
+network 192.168.100.0/26 area 0
+network 192.168.200.0/27 area 0
 interface tun1
 ip ospf authentication
 ip ospf authentication-key password
-end
-write
 exit
-systemctl restart frr
+end
+write memory
+exit
