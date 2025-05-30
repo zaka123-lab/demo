@@ -73,7 +73,7 @@ nano vlan.sh
 (Вот эти команды, в скобочках не надо копировать инфу, только код ниже) 
 ip link set hq-sw up
 ip a add 192.168.100.1/26 dev vlan100
-ip a add 192.168.100.65/28 dev vlan200
+ip a add 192.168.100.65/26 dev vlan200
 ip a add 192.168.100.81/29 dev vlan999
 ip link set vlan100 up
 ip link set vlan200 up
@@ -157,7 +157,28 @@ router ospf
 router-id 1.1.1.1
 passive-interface default
 network 10.10.0.0/30 area 0
-network 192.168.100.0/26 area 0
+network 192.168.100.0/28 area 0
+network 192.168.100.64/28 area 0
+network 192.168.200.0/27 area 0
+no passive-interface tun1
+area 0 authentication
+exit
+interface tun1
+no ip ospf network broadcast
+ip ospf authentication
+ip ospf authentication-key password
+end
+write
+exit
+systemctl restart frr
+
+vtysh
+conf
+router ospf
+router-id 1.1.1.1
+passive-interface default
+network 10.10.0.0/30 area 0
+network 192.168.200.0/28 area 0
 network 192.168.100.64/28 area 0
 network 192.168.200.0/27 area 0
 no passive-interface tun1
@@ -185,6 +206,26 @@ passive-interface default
 network 10.10.0.0/30 area 0
 network 192.168.100.0/28 area 0
 network 192.168.200.0/27 area 0 
+no passive-interface tun1
+area 0 authentication
+exit 
+interface tun1 
+no ip ospf network broadcast
+ip ospf authentication
+ip ospf authentication-key password 
+end
+write 
+exit 
+systemctl restart frr
+
+vtysh 
+conf
+router ospf 
+router-id 2.2.2.2 
+passive-interface default
+network 10.10.0.0/30 area 0
+network 192.168.100.0/28 area 0
+network 192.168.300.0/27 area 0 
 no passive-interface tun1
 area 0 authentication
 exit 
