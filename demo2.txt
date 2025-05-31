@@ -122,14 +122,14 @@ kinit administrator@AU-TEAM.IRPO
 klist
 
 # --- Шаг 15: Проверяем работу DNS ---
-dig @192.168.200.2 _ldap._tcp.au-team.irpo SRV
-host -t SRV _ldap._tcp.au-team.irpo 192.168.200.2
+dig @192.168.100.2 _ldap._tcp.au-team.irpo SRV
+host -t SRV _ldap._tcp.au-team.irpo 192.168.100.2
 
 # --- Шаг 16: Проверяем состояние AD ---
 samba-tool drs showrepl
 samba-tool user list
 samba-tool domain info au-team.irpo
-samba-tool dns zonelist 192.168.200.2
+samba-tool dns zonelist 192.168.100.2
 
 # --- Шаг 17: Логи Samba AD ---
 journalctl -u samba-ad-dc | tail -n 100
