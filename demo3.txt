@@ -60,27 +60,37 @@ systemctl start samba-ad-dc
 # Шаг 7: Проверяем статус
 systemctl status samba-ad-dc
 journalctl -xe
-# Установка необходимых утилит
-apt install -y dnsutils
+# Добавляем хост в hosts
+echo "192.168.200.2 br-srv.au-team.irpo br-srv" >> /etc/hosts
+# Перезапуск службы
+systemctl restart samba-ad-dc
 # Обновление DNS-записей
 samba_dnsupdate --verbose
-# Перезапуск службы Samba AD DC
+# Проверяем Kerberos
+kinit administrator@AU-TEAM.IRPO
+klist
+# Проверяем DNS
+dig @127.0.0.1 _ldap._tcp.au-team.irpo SRV
+host -t SRV _ldap._tcp.au-team.irpo
+# Проверяем состояние AD
+samba-tool drs showrepl
+samba-tool user list
+# Добавляем хост в hosts
+echo "192.168.200.2 br-srv.au-team.irpo br-srv" >> /etc/hosts
+# Перезапуск службы
 systemctl restart samba-ad-dc
-# Проверка Kerberos
+# Обновление DNS-записей
+samba_dnsupdate --verbose
+# Проверяем Kerberos
 kinit administrator@AU-TEAM.IRPO
 klist
-# Проверка DNS
-dig @127.0.0.1 AU-TEAM.IRPO SOA
+# Проверяем DNS
+dig @127.0.0.1 _ldap._tcp.au-team.irpo SRV
 host -t SRV _ldap._tcp.au-team.irpo
-# Проверка состояния AD
+# Проверяем состояние AD
 samba-tool drs showrepl
 samba-tool user list
-# Проверка Kerberos
-kinit administrator@AU-TEAM.IRPO
-klist
-# Проверка DNS
-dig @127.0.0.1 AU-TEAM.IRPO SOA
-host -t SRV _ldap._tcp.au-team.irpo
-# Проверка состояния AD
-samba-tool drs showrepl
-samba-tool user list
+cat /etc/krb5.conf
+cat /etc/resolv.conf
+cat /etc/samba/smb.conf
+journalctl -u samba-ad-dc | tail -n 100
