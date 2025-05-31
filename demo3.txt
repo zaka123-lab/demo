@@ -148,3 +148,50 @@ host -t SRV _ldap._tcp.au-team.irpo
 samba-tool drs showrepl
 samba-tool user list
 
+@sdf
+# Обновляем Kerberos конфиг
+cat > /etc/krb5.conf <<EOF
+[libdefaults]
+    default_realm = AU-TEAM.IRPO
+    dns_lookup_realm = false
+    dns_lookup_kdc = true
+
+[realms]
+    AU-TEAM.IRPO = {
+        kdc = br-srv.au-team.irpo
+        admin_server = br-srv.au-team.irpo
+    }
+
+[domain_realm]
+    .au-team.irpo = AU-TEAM.IRPO
+    au-team.irpo = AU-TEAM.IRPO
+EOF
+
+# Убеждаемся, что /etc/resolv.conf указывает на localhost
+echo "nameserver 127.0.0.1" > /etc/resolv.conf
+
+# Обновляем DNS-записи
+samba_dnsupdate --verbose
+
+# Перезапускаем службу
+systemctl restart samba-ad-dc
+
+# Проверяем работу Kerberos
+kinit administrator@AU-TEAM.IRPO
+klist
+
+# Проверяем работу DNS
+dig @127.0.0.1 _ldap._tcp.au-team.irpo SRV
+host -t SRV _ldap._tcp.au-team.irpo 127.0.0.1
+
+# Проверяем состояние AD
+samba-tool drs showrepl
+samba-tool user list
+# Логи службы
+journalctl -u samba-ad-dc | tail -n 100
+
+# Информация о домене
+samba-tool domain info au-team.irpo
+
+# Список DNS-зон
+samba-tool dns zonelist 127.0.0.1
