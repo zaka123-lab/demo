@@ -37,19 +37,26 @@ chmod +x remove_users.sh
 ./remove_users.sh
 
 SAMBA
-apt install samba samba-ad-dc winbind libpam-winbind libnss-winbind libpam-krb5 krb5-config krb5-user
-systemctl stop winbind smbd nmbd
-systemctl mask winbind smbd nmbd
-rm /etc/samba/smb.conf
+apt install -y samba winbind libpam-winbind libnss-winbind libpam-krb5 krb5-config krb5-user
+# Шаг 2: Останавливаем и маскируем старые службы
+systemctl stop smbd nmbd winbind
+systemctl mask smbd nmbd winbind
+# Шаг 3: Удаляем старый конфиг (если есть)
+rm -f /etc/samba/smb.conf
+# Шаг 4: Создаем домен Samba AD
 samba-tool domain provision \
     --realm=AU-TEAM.IRPO \
     --domain=AU-TEAM \
     --server-role=dc \
     --dns-backend=SAMBA_INTERNAL \
     --host-ip=192.168.100.2 \
-    --adminpass=P@ssw0rd \
-    --krb5-realm=AU-TEAM.IRPO
+    --adminpass=P@ssw0rd
+# Шаг 5: Копируем Kerberos конфиг
+cp /var/lib/samba/private/krb5.conf /etc/krb5.conf
+# Шаг 6: Включаем и запускаем службу Samba AD DC
 systemctl unmask samba-ad-dc
 systemctl enable samba-ad-dc
 systemctl start samba-ad-dc
-cp /var/lib/samba/private/krb5.conf /etc/krb5.conf
+# Шаг 7: Проверяем статус
+systemctl status samba-ad-dc
+journalctl -xe
