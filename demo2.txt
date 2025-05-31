@@ -121,12 +121,11 @@ chmod +x setup_samba_ad.sh
 Шаг 1.7: Настройка sudo для группы hq
 echo "%hq ALL=(ALL) NOPASSWD: /bin/grep, /bin/cat, /usr/bin/id" >> /etc/sudoers
 
-Шаг 1.8: Присоединение HQ-CLI, в конце надо нажать Enter и ввести P@ssw0rd
-# На HQ-CLI:
+Шаг 1.8: На HQ-CLI, в конце надо нажать Enter и ввести P@ssw0rd
 # Шаг 1: Обновите sources.list
 cat > /etc/apt/sources.list <<EOF
 deb http://archive.debian.org/debian buster main contrib non-free
-deb http://security-archive.debian.org/debian-security buster/updates main contrib non-free
+#deb http://security-archive.debian.org/debian-security buster/updates main contrib non-free
 EOF
 apt clean && apt update
 apt install -y smbclient samba-common samba-common-bin winbind libpam-winbind libnss-winbind krb5-user
@@ -210,15 +209,12 @@ tee /etc/ansible/hosts << 'EOF'
 [all:vars]
 ansible_user=sshuser
 ansible_port=2024
-
 [servers]
 hq-srv ansible_host=192.168.100.2
 br-srv ansible_host=192.168.200.2
-
 [routers]
 hq-rtr ansible_host=192.168.100.1
 br-rtr ansible_host=192.168.200.1
-
 [cli]
 hq-cli ansible_host=192.168.100.66
 EOF
