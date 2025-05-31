@@ -121,7 +121,7 @@ chmod +x setup_samba_ad.sh
 Шаг 1.7: Настройка sudo для группы hq
 echo "%hq ALL=(ALL) NOPASSWD: /bin/grep, /bin/cat, /usr/bin/id" >> /etc/sudoers
 
-Шаг 1.8: Присоединение HQ-CLI к домену
+Шаг 1.8: Присоединение HQ-CLI, в конце надо нажать Enter и ввести P@ssw0rd
 # На HQ-CLI:
 # Шаг 1: Обновите sources.list
 cat > /etc/apt/sources.list <<EOF
@@ -145,7 +145,7 @@ AU-TEAM.IRPO = {
 .au-team.irpo = AU-TEAM.IRPO
 au-team.irpo = AU-TEAM.IRPO
 EOF
-kinit administrator@AU-TEAM.IRPO
+kinit administrator@AU-TEAM.IRPO 
 
 Провекра
 klist
