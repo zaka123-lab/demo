@@ -1,47 +1,55 @@
-vtysh
-conf
-router ospf
-router-id 1.1.1.1
-passive-interface default
-no passive-interface tun1
-network 192.168.100.0/26 area 0
-network 192.168.200.0/27 area 0
-network 10.10.0.0/30 area 0
-area 0 authentication
-exit
-interface tun1
-ip ospf authentication
-ip ospf authentication-key password
-end
-write memory
-exit
-systemctl restart frr
+Если хочешь удалить пользователей и группу
+#!/bin/bash
+# Удаление пользователей
+for i in {1..5}; do
+    username="user${i}.hq"
+    if id "$username" &>/dev/null; then
+        sudo userdel -r "$username" 2>/dev/null
+        if [ $? -eq 0 ]; then
+            echo "Пользователь $username успешно удален"
+        else
+            echo "Ошибка при удалении пользователя $username" >&2
+        fi
+    else
+        echo "Пользователь $username не существует"
+    fi
+done
+# Удаление группы (только если она пустая)
+if getent group hq &>/dev/null; then
+    sudo groupdel hq 2>/dev/null
+    if [ $? -eq 0 ]; then
+        echo "Группа hq успешно удалена"
+    else
+        echo -e "\nНе удалось удалить группу hq. Возможные причины:"
+        echo "1. В группе остались пользователи"
+        echo "2. Группа используется как primary group для других пользователей"
+        echo "3. Нет прав для удаления"
+    fi
+else
+    echo "Группа hq не существует"
+fi
+echo -e "\nПроверка остатков:"
+getent passwd | grep 'hq$'
+getent group hq
 
-vtysh
-conf
-router ospf
-router-id 2.2.2.2
-passive-interface default
-no passive-interface tun1
-network 192.168.100.0/26 area 0
-network 192.168.200.0/27 area 0
-network 10.10.0.0/30 area 0
-area 0 authentication
-exit
-interface tun1
-ip ospf authentication
-ip ospf authentication-key password
-end
-write memory
-exit
-systemctl restart frr
+Делаем его исполняемым и запускаем
+chmod +x remove_users.sh
+./remove_users.sh
 
-iptables -L -n -v
-iptables -A INPUT -p ospf -j ACCEPT
-iptables -A OUTPUT -p ospf -j ACCEPT
-iptables -A INPUT -p icmp --icmp-type echo-request -j ACCEPT
-iptables -A OUTPUT -p icmp --icmp-type echo-reply -j ACCEPT
-vtysh -c "show ip ospf neighbor"
-ip addr show vlan100
-ip addr show vlan200
-vtysh -c "show ip route"
+SAMBA
+apt install samba samba-ad-dc winbind libpam-winbind libnss-winbind libpam-krb5 krb5-config krb5-user
+systemctl stop winbind smbd nmbd
+systemctl mask winbind smbd nmbd
+rm /etc/samba/smb.conf
+samba-tool domain provision ИЛИ samba-tool domain provision –user-rfc2307
+Realm: AU-TEAM.IRPO
+Domain: AU-TEAM
+Server Role: dc
+DNS backend: SAMBA_INTERNAL
+DNS Server: IP_DNS_SERVER
+P@ssw0rd
+P@ssw0rd
+systemctl unmask samba-ad-dc
+systemctl enable samba-ad-dc
+systemctl start samba-ad-dc
+cp /var/lib/samba/private/krb5.conf /etc/krb5.conf
