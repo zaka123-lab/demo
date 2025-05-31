@@ -92,7 +92,7 @@ crontab -e
 apt install isc-dhcp-server -y
 
 3.2. Настроим интерфейс DHCP 
-sed -i 's/^INTERFACESv4=".*"/INTERFACESv4="vlan200"/' /etc/default/isc-dhcp-server && systemctl restart isc-dhcp-server
+sed -i 's/^INTERFACESv4=".*"/INTERFACESv4="vlan200"/' /etc/default/isc-dhcp-server
 
 3.3. Настроим непосредственно сам DHCP. 
 sed -i \
