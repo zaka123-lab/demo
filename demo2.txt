@@ -148,9 +148,6 @@ AU-TEAM.IRPO = {
 au-team.irpo = AU-TEAM.IRPO
 EOF
 kinit administrator@AU-TEAM.IRPO
-# Присоединение к домену
-echo "password = P@ssw0rd" > /tmp/join.conf
-net join -U administrator < /tmp/join.conf
 
 2. Настройка файлового хранилища на HQ-SRV
 Шаг 2.1: Добавление дисков RAID 5
