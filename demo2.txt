@@ -6,17 +6,20 @@ apt update -y && apt install samba -y
 Шаг 1.2: Создание группы и пользователей на BR-SRV
 nano user.sh
 #!/bin/bash
+# Создаем группу hq, если она не существует
 if ! getent group hq &> /dev/null; then
     sudo groupadd hq
     echo "Группа hq создана"
 else
     echo "Группа hq уже существует"
 fi
-password_hash=$(openssl passwd -1 'P@$$word')
+# Генерируем MD5-хэш для пароля 'P@$$word'
+PASS_HASH=$(openssl passwd -1 'P@$$word')
+# Создаем 5 пользователей
 for i in {1..5}; do
     username="user${i}.hq"
-    # Создаем пользователя
-    sudo useradd -m -g hq -p "$password_hash" "$username"
+    # Создаём пользователя
+    sudo useradd -m -g hq -p "$PASS_HASH" "$username"
     # Проверяем, успешно ли создан пользователь
     if [ $? -eq 0 ]; then
         echo "Пользователь $username успешно создан"
@@ -30,6 +33,7 @@ for i in {1..5}; do
         echo "Ошибка при создании пользователя $username" >&2
     fi
 done
+# Выводим список созданных пользователей
 echo -e "\nСписок созданных пользователей:"
 getent passwd | grep -E "user[1-5]\.hq"
 
