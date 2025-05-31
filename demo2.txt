@@ -42,56 +42,92 @@ chmod +x user.sh
 ./user.sh
 
 Шаг 1.2: Настройка Samba для домена
-mv /etc/samba/smb.conf /etc/samba/smb.conf.bak
-tee /etc/samba/smb.conf << 'EOF'
-[global]
-   workgroup = AU-TEAM
-   realm = AU-TEAM.IRPO
-   password server = 192.168.100.2
-   server string = BR-SRV Samba Server
-   password server = 192.168.100.2
-   netbios name = br-srv
-   interfaces = 192.168.200.2
-   bind interfaces only = yes
-   security = user
-   map to guest = Bad User
-   dns proxy = no
-   idmap config * : backend = tdb
+nano setup_samba_ad.sh
+#!/bin/bash
 
-[Shared]
-   path = /srv/shared
-   force group = hq
-   writable = yes
-   create mask = 2770
-   directory mask = 2770
-   force user = sshuser
-   force group = hq
+# --- Шаг 1: Обновляем систему ---
+apt update && apt upgrade -y
+
+# --- Шаг 2: Устанавливаем необходимые пакеты ---
+apt install -y samba winbind libpam-winbind libnss-winbind \
+    libpam-krb5 krb5-config krb5-user dnsutils
+
+# --- Шаг 3: Останавливаем и маскируем устаревшие службы ---
+systemctl stop smbd nmbd winbind
+systemctl mask smbd nmbd winbind
+
+# --- Шаг 4: Удаляем старый конфиг Samba (если есть) ---
+rm -f /etc/samba/smb.conf
+
+# --- Шаг 5: Провизируем домен Samba AD ---
+samba-tool domain provision \
+    --realm=AU-TEAM.IRPO \
+    --domain=AU-TEAM \
+    --server-role=dc \
+    --dns-backend=SAMBA_INTERNAL \
+    --host-ip=192.168.200.2 \
+    --adminpass=P@ssw0rd
+
+# --- Шаг 6: Копируем Kerberos конфиг ---
+cp /var/lib/samba/private/krb5.conf /etc/krb5.conf
+
+# --- Шаг 7: Перезаписываем Kerberos конфиг вручную (для корректной работы) ---
+cat > /etc/krb5.conf <<EOF
+[libdefaults]
+    default_realm = AU-TEAM.IRPO
+    dns_lookup_realm = false
+    dns_lookup_kdc = true
+
+[realms]
+    AU-TEAM.IRPO = {
+        kdc = br-srv.au-team.irpo
+        admin_server = br-srv.au-team.irpo
+    }
+
+[domain_realm]
+    .au-team.irpo = AU-TEAM.IRPO
+    au-team.irpo = AU-TEAM.IRPO
 EOF
 
-НА HQ-CLI
-[global]
-     workgroup = au-team
-     realm = au-team.irpo
-     security = ADS
-     password server = 192.168.100.2
-     netbios name = hq-cli
-     winbind use default domain = yes
-     idmap config * : backend = tdb
-     idmap config * : range = 10000-20000
+# --- Шаг 8: Добавляем контроллер домена в /etc/hosts ---
+echo "192.168.200.2 br-srv.au-team.irpo br-srv" >> /etc/hosts
 
-Шаг 1.3. Создаем пользователя и пароль для samba. Пароль я использую P@ssw0rd
-smbpasswd -a sshuser
+# --- Шаг 9: Настраиваем DNS resolver на локальный сервер ---
+echo "nameserver 127.0.0.1" > /etc/resolv.conf
 
-Шаг 1.5: Создание общего каталога и прав
-mkdir -p /srv/shared
-chmod 2770 /srv/shared
-chgrp hq /srv/shared
+# --- Шаг 10: Обновляем DNS-записи ---
+samba_dnsupdate --verbose
 
-Шаг 1.6: Перезапуск Samba
-systemctl restart smbd nmbd
+# --- Шаг 11: Перезапускаем Samba AD DC ---
+systemctl restart samba-ad-dc
 
-Шаг 1.7. Проверка работоспособности, можно на BR-SRV и также на HQ-CLI
-smbclient //br-srv.au-team.irpo/Shared -U sshuser
+# --- Шаг 12: Включаем автозапуск и запускаем службу ---
+systemctl unmask samba-ad-dc
+systemctl enable samba-ad-dc
+systemctl start samba-ad-dc
+
+# --- Шаг 13: Сбрасываем пароль администратора ---
+samba-tool user setpassword administrator --newpassword='P@ssw0rd'
+
+# --- Шаг 14: Проверяем работу Kerberos ---
+kinit administrator@AU-TEAM.IRPO
+klist
+
+# --- Шаг 15: Проверяем работу DNS ---
+dig @127.0.0.1 _ldap._tcp.au-team.irpo SRV
+host -t SRV _ldap._tcp.au-team.irpo 127.0.0.1
+
+# --- Шаг 16: Проверяем состояние AD ---
+samba-tool drs showrepl
+samba-tool user list
+samba-tool domain info au-team.irpo
+samba-tool dns zonelist 127.0.0.1
+
+# --- Шаг 17: Логи Samba AD ---
+journalctl -u samba-ad-dc | tail -n 100
+
+chmod +x setup_samba_ad.sh
+./setup_samba_ad.sh
 
 Шаг 1.7: Настройка sudo для группы hq
 echo "%hq ALL=(ALL) NOPASSWD: /bin/grep, /bin/cat, /usr/bin/id" >> /etc/sudoers
