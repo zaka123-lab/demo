@@ -126,13 +126,13 @@ echo "%hq ALL=(ALL) NOPASSWD: /bin/grep, /bin/cat, /usr/bin/id" >> /etc/sudoers
 # Шаг 1: Обновите sources.list
 echo "deb http://archive.debian.org/debian buster main contrib non-free" > /etc/apt/sources.list
 echo "deb http://archive.debian.org/debian-security buster/updates main contrib non-free" >> /etc/apt/sources.list
-# Шаг 2: Обновите систему
-apt-get update
-# Шаг 3: Установите нужные пакеты
-apt install -y smbclient samba-common-bin
-# Шаг 4: Присоединитесь к домену
-echo "password = P@ssw0rd" > /tmp/join.conf
-net join -U administrator < /tmp/join.conf
+apt install -y debian-archive-keyring
+apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 648ACFD622F3D138
+apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 0E98404D386FA1D9
+apt-key adv --keyserver keyserver.ubuntu.com --recv-keys DCC9EFBF77E11517
+apt update
+apt install -y smbclient samba-common samba-common-bin winbind libpam-winbind libnss-winbind krb5-user
+echo "192.168.200.2 br-rtr.au-team.irpo br-rtr" >> /etc/hosts
 cat > /etc/krb5.conf <<EOF
 [libdefaults]
     default_realm = AU-TEAM.IRPO
@@ -147,7 +147,10 @@ AU-TEAM.IRPO = {
 .au-team.irpo = AU-TEAM.IRPO
 au-team.irpo = AU-TEAM.IRPO
 EOF
-echo "192.168.200.2 br-rtr.au-team.irpo br-rtr" >> /etc/hosts
+kinit administrator@AU-TEAM.IRPO
+# Присоединение к домену
+echo "password = P@ssw0rd" > /tmp/join.conf
+net join -U administrator < /tmp/join.conf
 
 2. Настройка файлового хранилища на HQ-SRV
 Шаг 2.1: Добавление дисков RAID 5
