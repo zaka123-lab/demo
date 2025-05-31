@@ -100,6 +100,8 @@ echo "nameserver 127.0.0.1" >> /etc/resolv.conf
 echo "nameserver 192.168.100.2" >> /etc/resolv.conf
 echo "nameserver 8.8.8.8" >> /etc/resolv.conf
 echo "nameserver 8.8.4.4" >> /etc/resolv.conf
+hostnamectl set-hostname br-srv.au-team.irpo
+echo "br-srv.au-team.irpo" >> /etc/hostname
 
 # --- Шаг 10: Обновляем DNS-записи ---
 samba_dnsupdate --verbose
