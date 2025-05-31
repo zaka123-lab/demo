@@ -41,44 +41,6 @@ getent passwd | grep -E "user[1-5]\.hq"
 chmod +x user.sh
 ./user.sh
 
-Если хочешь удалить пользователей и группу
-#!/bin/bash
-# Удаление пользователей
-for i in {1..5}; do
-    username="user${i}.hq"
-    if id "$username" &>/dev/null; then
-        sudo userdel -r "$username" 2>/dev/null
-        if [ $? -eq 0 ]; then
-            echo "Пользователь $username успешно удален"
-        else
-            echo "Ошибка при удалении пользователя $username" >&2
-        fi
-    else
-        echo "Пользователь $username не существует"
-    fi
-done
-# Удаление группы (только если она пустая)
-if getent group hq &>/dev/null; then
-    sudo groupdel hq 2>/dev/null
-    if [ $? -eq 0 ]; then
-        echo "Группа hq успешно удалена"
-    else
-        echo -e "\nНе удалось удалить группу hq. Возможные причины:"
-        echo "1. В группе остались пользователи"
-        echo "2. Группа используется как primary group для других пользователей"
-        echo "3. Нет прав для удаления"
-    fi
-else
-    echo "Группа hq не существует"
-fi
-echo -e "\nПроверка остатков:"
-getent passwd | grep 'hq$'
-getent group hq
-
-Делаем его исполняемым и запускаем
-chmod +x remove_users.sh
-./remove_users.sh
-
 Шаг 1.2: Настройка Samba для домена
 mv /etc/samba/smb.conf /etc/samba/smb.conf.bak
 tee /etc/samba/smb.conf << 'EOF'
@@ -142,8 +104,17 @@ net join -U sshuser
 
 2. Настройка файлового хранилища на HQ-SRV
 Шаг 2.1: Добавление дисков RAID 5
+apt install mdadm -y
 # Предполагается, что добавлены три новых диска, например, /dev/sd{b,c,d}
-mdadm --create --verbose /dev/md0 --level=5 --raid-devices=3 /dev/sd{b,c,d}
+mdadm --create --verbode /dev/md0 --level=1 --raid-devices=2 /dev/sdb dev/sdc --spare-devices=1 /dev/sdd
+cat /proc/mdstat
+mdadm --detail --scan >> /etc/mdadm/mdadm.conf
+update-initramfs -u
+mkfs –t ext4 /dev/md0
+mkdir -p /raid5
+nano /etc/fstab
+/dev/md0 /raid5 ext4 defaults 0 0
+mount -a
 
 Шаг 2.2: Настройка mdadm.conf
 mdadm --detail --scan >> /etc/mdadm.conf
