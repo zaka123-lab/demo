@@ -60,6 +60,21 @@ systemctl start samba-ad-dc
 # Шаг 7: Проверяем статус
 systemctl status samba-ad-dc
 journalctl -xe
+# Установка необходимых утилит
+apt install -y dnsutils
+# Обновление DNS-записей
+samba_dnsupdate --verbose
+# Перезапуск службы Samba AD DC
+systemctl restart samba-ad-dc
+# Проверка Kerberos
+kinit administrator@AU-TEAM.IRPO
+klist
+# Проверка DNS
+dig @127.0.0.1 AU-TEAM.IRPO SOA
+host -t SRV _ldap._tcp.au-team.irpo
+# Проверка состояния AD
+samba-tool drs showrepl
+samba-tool user list
 # Проверка Kerberos
 kinit administrator@AU-TEAM.IRPO
 klist
