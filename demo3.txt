@@ -38,6 +38,9 @@ chmod +x remove_users.sh
 
 SAMBA
 apt install samba samba-ad-dc winbind libpam-winbind libnss-winbind libpam-krb5 krb5-config krb5-user
+systemctl stop winbind smbd nmbd
+systemctl mask winbind smbd nmbd
+rm /etc/samba/smb.conf
 samba-tool domain provision \
     --realm=AU-TEAM.IRPO \
     --domain=AU-TEAM \
