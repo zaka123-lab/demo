@@ -46,7 +46,7 @@ nano setup_samba_ad.sh
 #!/bin/bash
 
 # --- Шаг 1: Обновляем систему ---
-apt update && apt upgrade -y
+apt update
 
 # --- Шаг 2: Устанавливаем необходимые пакеты ---
 apt install -y samba winbind libpam-winbind libnss-winbind \
